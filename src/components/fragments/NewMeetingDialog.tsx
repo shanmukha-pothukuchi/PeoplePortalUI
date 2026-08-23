@@ -177,7 +177,8 @@ export const NewMeetingDialog = (props: NewMeetingDialogProps) => {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      {/* Capped to the viewport; header and footer stay put while the form body scrolls */}
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Meeting" : "New Meeting"}</DialogTitle>
             <DialogDescription>
@@ -185,7 +186,7 @@ export const NewMeetingDialog = (props: NewMeetingDialogProps) => {
             </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4">
+        <div className="-m-1 grid min-h-0 flex-1 gap-4 overflow-y-auto p-1">
           <div className="grid gap-2">
             <Label htmlFor="meeting-title">Title</Label>
             <Input
