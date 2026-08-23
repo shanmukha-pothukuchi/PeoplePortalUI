@@ -16,20 +16,33 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Button } from "../ui/button"
 
 export type RecurrenceScope = "this" | "following" | "all"
 
+export type RecurrenceAction = "edit" | "delete"
+
 export interface RecurrenceScopeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  action: "edit" | "delete"
+  action: RecurrenceAction
   onSelect: (scope: RecurrenceScope) => void
 }
 
 export const RecurrenceScopeDialog = (props: RecurrenceScopeDialogProps) => {
-  const verb = props.action === "delete" ? "Delete" : "Edit"
+  /* Parents typically clear their pending action the moment a scope is picked,
+     which flips the `action` prop while the dialog is still animating closed.
+     Latch the action seen while open so the copy can't change mid-close
+     (e.g. "Delete recurring meeting" turning into "Edit recurring meeting"). */
+  const [latchedAction, setLatchedAction] = useState<RecurrenceAction>(props.action)
+  useEffect(() => {
+    if (props.open) setLatchedAction(props.action)
+  }, [props.open, props.action])
+  const action = props.open ? props.action : latchedAction
+
+  const verb = action === "delete" ? "Delete" : "Edit"
   const choose = (scope: RecurrenceScope) => {
     props.onSelect(scope)
     props.onOpenChange(false)
@@ -41,7 +54,7 @@ export const RecurrenceScopeDialog = (props: RecurrenceScopeDialogProps) => {
         <DialogHeader>
           <DialogTitle>{verb} recurring meeting</DialogTitle>
           <DialogDescription>
-            This meeting repeats weekly. Which occurrences should be {props.action === "delete" ? "deleted" : "changed"}?
+            This meeting repeats weekly. Which occurrences should be {action === "delete" ? "deleted" : "changed"}?
           </DialogDescription>
         </DialogHeader>
 
