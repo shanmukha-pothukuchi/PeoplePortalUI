@@ -21,9 +21,10 @@ import { CalendarView, type CalendarEvent } from "@/components/blocks/CalendarVi
 import { NewMeetingDialog, type MeetingDraft, type RosterMember, type SubteamOption } from "@/components/fragments/NewMeetingDialog"
 import { AttendanceDialog } from "@/components/fragments/AttendanceDialog"
 import { RecurrenceScopeDialog, type RecurrenceScope } from "@/components/fragments/RecurrenceScopeDialog"
+import { CalendarSubscribeDialog } from "@/components/fragments/CalendarSubscribeDialog"
 import { Button } from "@/components/ui/button"
 import { addDays, clamp, format, isAfter, isBefore, parse, startOfDay, startOfWeek } from "date-fns"
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, UsersIcon, XIcon } from "lucide-react"
+import { CalendarPlusIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, UsersIcon, XIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -71,6 +72,8 @@ export const TeamMeetings = () => {
   const [subteams, setSubteams] = useState<SubteamOption[]>([]);
   const [canManage, setCanManage] = useState(false);
   const [attendanceMeeting, setAttendanceMeeting] = useState<Meeting | null>(null);
+  const [teamName, setTeamName] = useState<string | undefined>();
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
 
   const [pendingAction, setPendingAction] = useState<PendingRecurringAction | null>(null);
 
@@ -129,11 +132,12 @@ export const TeamMeetings = () => {
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<{
-          team?: { attributes?: { teamStartDate?: string; teamEndDate?: string } };
+          team?: { name?: string; attributes?: { friendlyName?: string; teamStartDate?: string; teamEndDate?: string } };
           subteams?: Array<{ pk: string; name: string; attributes?: { friendlyName?: string; flaggedForDeletion?: boolean } }>;
         }>;
       })
       .then(({ team, subteams: rawSubteams }) => {
+        setTeamName(team?.attributes?.friendlyName ?? team?.name);
         setSubteams((rawSubteams ?? [])
           .filter((s) => !s.attributes?.flaggedForDeletion)
           .map((s) => ({ pk: s.pk, name: s.attributes?.friendlyName ?? s.name })));
@@ -300,17 +304,33 @@ export const TeamMeetings = () => {
         onSelect={handleScopeSelect}
       />
 
+      {teamId && (
+        <CalendarSubscribeDialog
+          open={subscribeOpen}
+          onOpenChange={setSubscribeOpen}
+          teamId={teamId}
+          teamName={teamName}
+        />
+      )}
+
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-3">
           <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">Team Meetings</h1>
           <h4 className="text-xl text-muted-foreground">Set your Team Meetings/Rep Meetings schedule, take attendance, and keep meeting notes</h4>
         </div>
-        {canManage && (
-          <Button className="shrink-0" onClick={() => openNewMeeting()}>
-            <PlusIcon />
-            New Meeting
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Everyone can subscribe: the feed only ever contains meetings the user is allowed to see */}
+          <Button variant="outline" onClick={() => setSubscribeOpen(true)}>
+            <CalendarPlusIcon />
+            Add to calendar
           </Button>
-        )}
+          {canManage && (
+            <Button onClick={() => openNewMeeting()}>
+              <PlusIcon />
+              New Meeting
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1">
